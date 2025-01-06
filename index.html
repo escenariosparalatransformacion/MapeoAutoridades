@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Análisis de Actores - Tablero General</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        :root {
+            --un-blue: #00aedb;
+            --un-green: #72bf44;
+            --un-yellow: #ffc800;
+            --un-orange: #f582d0;
+            --un-red: #ed1847;
+            --un-purple: #a05fb4;
+            --un-gray: #aea9a9;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .header-title h1 {
+            color: var(--un-blue);
+            font-size: 1.8em;
+        }
+        .header-stats {
+            display: flex;
+            gap: 10px;
+        }
+        .header-stat {
+            padding: 5px 15px;
+            background: var(--un-blue);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .main-kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2em;
+            color: var(--un-blue);
+            opacity: 0.2;
+        }
+        .kpi-title {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .kpi-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--un-blue);
+            margin-bottom: 5px;
+        }
+        .kpi-subvalue {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        #map {
+            background: white;
+            border-radius: 8px;
+            height: 500px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .filters-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        .filter-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+        }
+        .filter-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+         .chart-box {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            position: relative;
+        }
+         .chart-box .chart-title {
+            color: #444;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+         .chart-box canvas {
+            width: 100% !important;
+            height: calc(100% - 30px) !important;
+        }
+        .stakeholder-popup {
+            max-width: 300px;
+        }
+        .stakeholder-popup h3 {
+            margin-bottom: 10px;
+            color: var(--un-blue);
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .popup-stats {
+            margin-bottom: 15px;
+        }
+        .popup-details {
+            display: grid;
+            gap: 8px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .main-kpis {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+         .chart-box {
+            position: relative;
+            height: 340px !important;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-box canvas {
+            width: 100% !important;
+            height: calc(100% - 30px) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <div class="header-title">
+                <h1>Análisis de Actores Clave 2025</h1>
+                <div class="header-stats">
+                    <div class="header-stat">Sub Oficina Maracaibo</div>
+                    <div class="header-stat">OCHA</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-kpis">
+            <div class="kpi-card">
+                <i class="fas fa-users kpi-icon"></i>
+                <div class="kpi-title">Total Actores</div>
+                <div class="kpi-value" id="total-actors">-</div>
+                <div class="kpi-subvalue">actores mapeados</div>
+            </div>
+            <div class="kpi-card">
+                <i class="fas fa-star kpi-icon"></i>
+                <div class="kpi-title">Alta Influencia</div>
+                <div class="kpi-value" id="high-influence">-</div>
+                <div class="kpi-subvalue">actores con influencia</div>
+            </div>
+             <div class="kpi-card">
+                <i class="fas fa-flag kpi-icon"></i>
+                 <div class="kpi-title">Orientaciones Políticas</div>
+                 <div class="kpi-value" id="political-affiliations">-</div>
+                 <div class="kpi-subvalue">orientaciones políticas</div>
+            </div>
+             <div class="kpi-card">
+                <i class="fas fa-building kpi-icon"></i>
+                <div class="kpi-title">Instituciones</div>
+                <div class="kpi-value" id="total-institutions">-</div>
+                <div class="kpi-subvalue">representadas</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div id="map"></div>
+            <div class="filters-container">
+                 <div class="filter-group">
+                    <label class="filter-label" title="Seleccione un estado para filtrar">Estados:</label>
+                    <select class="filter-select" id="state-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="Falcón">Falcón</option>
+                        <option value="Zulia">Zulia</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" title="Seleccione un municipio para filtrar">Municipios:</label>
+                    <select class="filter-select" id="municipality-select">
+                        <option value="all">Todos los municipios</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" title="Seleccione un tipo de actor">Tipo de Actor:</label>
+                     <select class="filter-select" id="actor-type-select">
+                        <option value="all">Todos los tipos</option>
+                        <option value="Autoridades Civiles">Autoridades Civiles</option>
+                        <option value="Autoridades Militares">Autoridades Militares</option>
+                        <option value="Academia">Academia</option>
+                        <option value="Líderes comunitarios">Líderes comunitarios</option>
+                        <option value="Organizaciones religiosas">Organizaciones religiosas</option>
+                        <option value="Policia">Policia</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" title="Seleccione un nivel de influencia">Nivel de Influencia:</label>
+                    <select class="filter-select" id="influence-select">
+                        <option value="all">Todos los niveles</option>
+                        <option value="Alto">Alto</option>
+                        <option value="Medio">Medio</option>
+                        <option value="Bajo">Bajo</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-box">
+                <h3 class="chart-title">Distribución por Influencia</h3>
+                <canvas id="influence-chart"></canvas>
+            </div>
+             <div class="chart-box">
+                <h3 class="chart-title">Afiliación Política</h3>
+                <canvas id="affiliation-chart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3 class="chart-title">Distribución por Tipo de Actor</h3>
+                <canvas id="actor-type-chart"></canvas>
+            </div>
+             <div class="chart-box">
+                <h3 class="chart-title">Distribución por Municipio</h3>
+                <canvas id="municipality-chart"></canvas>
+            </div>
+        </div>
+        
+         <footer
+        style="
+          text-align: center;
+          padding: 20px;
+          background: white;
+          margin-top: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        "
+      >
+        Sub Oficina OCHA Maracaibo, Diciembre 2024<br />
+        <small style="color: #666">
+          (Fuente:Análisis Internos 2024-2025)
+        </small>
+      </footer>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const actorsData = [
+                {
+        name: "Víctor Clark Boscán",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Alto",
+        opennessLevel: "Moderada",
+        notes: "Gobernador con sólida trayectoria en el PSUV y fuerte lealtad a Maduro. Ha impulsado mejoras en infraestructura y la Zona Económica de Paraguaná. Su influencia es significativa para agilizar permisos, pero su estrecha alineación con el gobierno central puede llevar a politización de iniciativas. Ha mostrado apertura a mesas de coordinación humanitaria.",
+        cargo: "Gobernador",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Yolfrán Cuauro",
+        state: "Falcón",
+        municipality: "Píritu",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde alineado con gobierno central, enfocado en servicios públicos e infraestructura vial. Su posición dentro del PSUV facilita coordinación con estructuras gubernamentales. Potencial para proyectos de infraestructura y servicios básicos bajo marco de políticas nacionales.",
+        cargo: "Alcalde de Píritu",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Carlos Escalona",
+        state: "Falcón",
+        municipality: "San Francisco (Falcón)",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde opositor con enfoque en mejora de servicios y gestión municipal. Su posición opositora puede limitar acceso a recursos centrales pero muestra apertura a cooperación técnica. Oportunidad para programas de fortalecimiento municipal y servicios básicos manteniendo neutralidad.",
+        cargo: "Alcalde de San Francisco",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Osnel Arnias",
+        state: "Falcón",
+        municipality: "Silva",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde opositor con potencial para apoyo en acción humanitaria. Controversias previas pueden limitar su capacidad de acceso a recursos gubernamentales. Oportunidad para programas comunitarios si se mantiene enfoque técnico y neutral.",
+        cargo: "Alcalde de Silva",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Fabio Enrique Zavarse Pabón",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "PSUV (Militar)",
+        influenceLevel: "Alto",
+        opennessLevel: "Baja",
+        notes: "Comandante REDI con historial en CONAS y GNB. Bajo sanciones de EE.UU. por represión de protestas. Su perfil militar 'revolucionario' sugiere alta resistencia inicial a cooperación internacional. Requiere aproximación formal, respetando jerarquías militares. Control efectivo sobre fuerzas militares en región occidental.",
+        cargo: "Comandante REDI",
+         actorType: "Autoridades Militares"
+    },
+    {
+        name: "Francisco Luis Moreno",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "PSUV (Militar)",
+        influenceLevel: "Alto",
+        opennessLevel: "Moderada",
+        notes: "Comandante ZODI con experiencia en Brigada de Paracaidistas. Actor clave para acceso a zonas remotas y coordinación de seguridad. Su enfoque en control territorial puede facilitar o limitar operaciones. Experiencia previa en múltiples comandos sugiere conocimiento detallado del territorio.",
+        cargo: "Comandante ZODI",
+         actorType: "Autoridades Militares"
+    },
+    {
+        name: "Yoe Cabos",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "PSUV (Técnico)",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Director de Protección Civil con enfoque técnico en gestión de emergencias. Experiencia en respuesta a eventos meteorológicos y coordinación operativa. Rol crucial en situaciones de desastre y acceso a zonas vulnerables. Su perfil técnico facilita cooperación en temas humanitarios.",
+        cargo: "Director Protección Civil",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Víctor Hugo Basabe",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "Independiente (Religioso)",
+        influenceLevel: "Alto",
+        opennessLevel: "Alta",
+        notes: "Arzobispo de Coro con formación en derecho y teología. Crítico del gobierno con historial de defensa de derechos humanos. Líder espiritual con amplia influencia y legitimidad en la población. Aliado potencial en acción humanitaria con experiencia en diálogo social.",
+        cargo: "Arzobispo de Coro",
+         actorType: "Organizaciones religiosas"
+    },
+     {
+        name: "Dannys Aguirre",
+        state: "Falcón",
+        municipality: "Acosta",
+        politicalAffiliation: "MUD (AD)",
+        influenceLevel: "Bajo",
+        opennessLevel: "Alta",
+        notes: "Alcalde opositor enfocado en problemática de servicios públicos, especialmente energía eléctrica. Capacidad operativa limitada por dependencia de recursos externos. Muestra interés en temas humanitarios pero enfrenta restricciones del gobierno central. Oportunidad para coordinar asistencia en servicios básicos.",
+        cargo: "Alcalde de Acosta",
+          actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Darwin Noroño",
+        state: "Falcón",
+        municipality: "Bolívar",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde activo en estructura del PSUV con experiencia en movimientos sociales. Trabaja en coordinación con el gobernador en mejoras de agua e infraestructura vial. Su alineación con el gobierno facilita acceso a recursos pero requiere mantener coordinación con estructuras oficiales.",
+        cargo: "Alcalde de Bolívar",
+          actorType: "Autoridades Civiles"
+    },
+    {
+        name: "José Díaz",
+        state: "Falcón",
+        municipality: "Buchivacoa",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Bajo",
+        opennessLevel: "Alta",
+        notes: "Alcalde opositor con enfoque en servicios básicos e infraestructura. Receptivo a intervenciones humanitarias neutrales. Enfrenta limitaciones por tensión con gobierno central. Potencial para coordinación en servicios básicos si se mantiene neutralidad política.",
+        cargo: "Alcalde de Buchivacoa",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Ángel Henríquez",
+        state: "Falcón",
+        municipality: "Cacique Manaure",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Bajo",
+        opennessLevel: "Alta",
+        notes: "Alcalde opositor centrado en resolver problemas de servicios públicos, especialmente agua. Muestra receptividad a programas comunitarios pese a limitaciones presupuestarias. Relación tensa con gobierno central afecta acceso a recursos pero mantiene apertura a colaboración en beneficio comunitario.",
+        cargo: "Alcalde de Cacique Manaure",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Abel Petit",
+        state: "Falcón",
+        municipality: "Carirubana",
+        politicalAffiliation: "PSUV (Separado)",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Ex alcalde con experiencia como concejal y diputado. Separado del cargo en 2024 por salud. Durante su gestión impulsó Zona Económica Especial y desarrollo social. Mantiene influencia en estructuras del PSUV. Potencial para proyectos sociales coordinados con gobierno.",
+        cargo: "Ex-alcalde de Carirubana",
+          actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Rubén Molina",
+        state: "Falcón",
+        municipality: "Colina",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Jefe político del PSUV en el municipio con enfoque en turismo y economía local. Colaboración estrecha con gobierno regional facilita acceso a recursos. Su alineación con PSUV puede ser ventajosa para acceso pero implica riesgo de politización en programas sociales.",
+        cargo: "Alcalde de Colina",
+         actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Pedro Fernández",
+        state: "Falcón",
+        municipality: "Democracia",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Bajo",
+        opennessLevel: "Alta",
+        notes: "Alcalde opositor receptivo a programas comunitarios. Enfrenta limitaciones significativas por postura opositora pero mantiene enfoque en necesidades locales. Potencial para colaboración en servicios básicos si se evita politización y se mantiene neutralidad.",
+        cargo: "Alcalde de Democracia",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Harold Dávila",
+        state: "Falcón",
+        municipality: "Falcón",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde con experiencia previa y logros en infraestructura deportiva y social. Mantiene conflictos con Corpoelec por servicio eléctrico. Su experiencia en gestión municipal y enfoque en servicios públicos ofrece oportunidades de colaboración, pese a tensiones con entidades gubernamentales.",
+        cargo: "Alcalde de Falcón",
+        actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Nayrobis Osteicochea",
+        state: "Falcón",
+        municipality: "Federación",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcaldesa alineada con gobierno central tras suceder a Arcaya. Su gestión sigue directrices del PSUV en ayuda humanitaria. Oportunidad para trabajo en marco de políticas gubernamentales pero con riesgo de politización. Dependencia de recursos centrales influye en toma de decisiones.",
+        cargo: "Alcaldesa de Federación",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Luis Bello",
+        state: "Falcón",
+        municipality: "Jacura",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde del PSUV desde 2017 con énfasis en sector agrícola y desarrollo local. Abierto a iniciativas coordinadas con gobierno. Potencial para implementación de programas de desarrollo económico local, sujeto a políticas gubernamentales. Limitaciones por situación económica del país.",
+        cargo: "Alcalde de Jacura",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "María Arcaya",
+        state: "Falcón",
+        municipality: "Los Taques",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcaldesa con formación en Gerontología y experiencia como concejal y jefa CLAP. Enfocada en mejora de servicios públicos y desarrollo local. Su gestión en servicios públicos muestra sensibilidad a necesidades poblacionales. Potencial para programas sociales bajo marco gubernamental.",
+        cargo: "Alcaldesa de Los Taques",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "José Chirinos",
+        state: "Falcón",
+        municipality: "Mauroa",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde PSUV centrado en infraestructura y servicios públicos. Mantiene colaboración activa con gobierno central. Apertura a iniciativas de apoyo coordinadas con gobierno. Limitaciones presupuestarias afectan capacidad operativa pero mantiene disposición a programas sociales.",
+        cargo: "Alcalde de Mauroa",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Henry Hernández",
+        state: "Falcón",
+        municipality: "Miranda (Falcón)",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Alto",
+        opennessLevel: "Favorable",
+        notes: "Alcalde médico y ex secretario general del gobierno estatal. Mantiene alineación con PSUV y colaboración con gobierno central. Sin información específica sobre proyectos pero su formación médica podría facilitar programas de salud. Potencial para coordinación en programas sociales.",
+        cargo: "Alcalde de Miranda",
+        actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Argenis Cumare",
+        state: "Falcón",
+        municipality: "Monseñor Iturriza",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Indeterminada",
+        notes: "Alcalde PSUV con iniciativas en infraestructura pública como alumbrado. Mantiene colaboración con gobierno central aunque capacidad limitada por recursos. Potencial para programas coordinados con políticas gubernamentales en infraestructura básica.",
+        cargo: "Alcalde de Monseñor Iturriza",
+         actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Giuseppe Palmieri",
+        state: "Falcón",
+        municipality: "Palmasola",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Indeterminada",
+        notes: "Alcalde con múltiples períodos desde 2004, demostrando fuerte control local y lealtad al PSUV. Su larga permanencia indica capacidad de gestión y estabilidad política. Acceso a recursos condicionado a alineación con gobierno central. Requiere considerar centralización de poder en su figura.",
+        cargo: "Alcalde de Palmasola",
+          actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Yoneida Chirinos",
+        state: "Falcón",
+        municipality: "Petit",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcaldesa y ex diputada con iniciativas en gestión ambiental y coordinación intermunicipal. Muestra interés en problemas ambientales y sostenibilidad. Potencial para colaboración en programas de servicios y medio ambiente, bajo coordinación con políticas gubernamentales.",
+        cargo: "Alcaldesa de Petit",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Daniel Villa",
+        state: "Falcón",
+        municipality: "Dabajuro",
+         politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde del municipio Dabajuro, con trayectoria en la política local y experiencia en campañas políticas. Su gestión reciente se ha enfocado en la transformación del hospital local. Aunque con afiliación opositora, muestra disposición al trabajo conjunto en pro de su comunidad.",
+         cargo: "Alcalde de Dabajuro",
+        actorType: "Autoridades Civiles"
+    },
+      {
+        name: "Yoly Blanco",
+        state: "Falcón",
+         municipality: "Tocópero",
+          politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcaldesa del municipio Tocópero, con experiencia en la administración pública. Ha trabajado como Prefecta y Directora de Desarrollo Social. Su gestión se enfoca en el desarrollo social y mejora de servicios públicos. Su cercanía con el PSUV le permite tener un canal de comunicación directa con instancias gubernamentales.",
+           cargo: "Alcaldesa de Tocópero",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Alejandro Castillo",
+        state: "Falcón",
+        municipality: "Urumaco",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+         opennessLevel: "Moderada",
+        notes: "Alcalde del municipio Urumaco por el PSUV. Su gestión se ha enfocado en mejorar la infraestructura local y los servicios públicos del municipio, especialmente después de su reelección en 2021. Mantiene colaboración con el gobierno central pero no es muy conocido su accionar.",
+        cargo: "Alcalde de Urumaco",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Orlando Millán",
+         state: "Falcón",
+        municipality: "Zamora",
+          politicalAffiliation: "MUD",
+          influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde del municipio Zamora, con experiencia en varias administraciones locales previas, miembro de la MUD, y se espera que su enfoque sea mejorar servicios básicos y la infraestructura local. Pero se debe considerar su trayectoria con problemas legales por corrupción.",
+        cargo: "Alcalde de Zamora",
+         actorType: "Autoridades Civiles"
+    },
+  {
+        name: "Manuel Rosales",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "Oposición (UNT)",
+        influenceLevel: "Alto",
+        opennessLevel: "Alta",
+        notes: "Gobernador con extensa experiencia política (ex alcalde, ex gobernador, ex candidato presidencial). Mantiene postura opositora pragmática con apertura a cooperación internacional. Enfocado en recuperación de servicios básicos e infraestructura. Red de influencia significativa con alcaldes y sector privado. Capacidad limitada por restricciones presupuestarias del gobierno central.",
+        cargo: "Gobernador",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Pedro Esteban González Ovalles",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "PSUV (Militar)",
+        influenceLevel: "Alto",
+        opennessLevel: "Baja",
+        notes: "Comandante REDI designado en 2024, con control militar sobre Zulia, Falcón y Lara. Militar revolucionario con énfasis en soberanía. Alta resistencia inicial a intervención internacional. Requiere aproximación formal siguiendo protocolos estrictos. Control efectivo sobre movimientos en la región.",
+        cargo: "Comandante REDI",
+         actorType: "Autoridades Militares"
+    },
+    {
+        name: "Javier Enrique Magallanes",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "PSUV (Militar)",
+        influenceLevel: "Alto",
+        opennessLevel: "Moderada",
+        notes: "Comandante ZODI desde 2024, con experiencia en Brigada de Paracaidistas. Enlace operativo militar crucial para operaciones en terreno. Conocimiento detallado del territorio y capacidad para facilitar acceso a zonas remotas. Clave para coordinación de seguridad y permisos operativos locales.",
+        cargo: "Comandante ZODI",
+        actorType: "Autoridades Militares"
+    },
+    {
+        name: "Néstor Reverol Torres",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Alto",
+        opennessLevel: "Baja",
+        notes: "Presidente de Corpozulia, ex Ministro de Energía Eléctrica y ex Comandante GNB. Control directo sobre recursos estratégicos. Acceso restringido por sanciones internacionales. Alta capacidad operativa en territorios indígenas. Requiere aproximación cautelosa por señalamientos del Departamento de Justicia de EE.UU.",
+        cargo: "Presidente de Corpozulia",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Adrián Romero Martínez",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "Opositor",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde encargado desde 2024, con perfil técnico como abogado y ex Director de Servicios Públicos. Enfoque pragmático en gestión municipal con apertura a cooperación técnica. Proyecto de ingresos 2025 con 84% de recursos propios indica búsqueda de autonomía operativa. Oportunidad para programas de servicios básicos.",
+        cargo: "Alcalde de Maracaibo",
+         actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Judith Aular",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Rectora interina de LUZ desde 2020. Fuerte defensa de autonomía universitaria frente a presiones políticas. Mantiene red académica internacional y recursos técnicos significativos. Potencial para investigación, análisis y capacitación con neutralidad institucional.",
+        cargo: "Rectora (interina) de la Universidad del Zulia",
+         actorType: "Academia"
+    },
+    {
+        name: "José Luis Azuaje",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "Independiente (Religioso)",
+        influenceLevel: "Alto",
+        opennessLevel: "Alta",
+        notes: "Arzobispo con extensa experiencia en acción humanitaria como ex presidente de Cáritas América Latina y CEV. Red internacional consolidada y capacidad de diálogo con todos los sectores. Legitimidad moral independiente y conocimiento profundo de crisis humanitaria. Aliado natural para programas sociales.",
+        cargo: "Arzobispo de Maracaibo",
+        actorType: "Organizaciones religiosas"
+    },
+    {
+        name: "Benito Mendoza",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "PSUV (Técnico)",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Director de Protección Civil con demostrada capacidad operativa en terreno. Experiencia en manejo de emergencias con más de mil casos atendidos en 2022. Conocimiento técnico de riesgos y red de coordinación multiactor. Socio clave para respuesta a emergencias y acceso a zonas vulnerables.",
+        cargo: "Director de Protección Civil",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "José Salvador Viloria",
+        state: "Zulia",
+        municipality: "Maracaibo",
+        politicalAffiliation: "PSUV (Militar/Policial)",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Jefe del CPBEZ con antecedentes en GNB. Control efectivo sobre seguridad urbana y conexión directa con estructuras militares. Actor clave para acceso seguro a zonas críticas. Requiere coordinación formal y respeto a protocolos institucionales.",
+        cargo: "Jefe del CPBEZ",
+        actorType: "Autoridades Militares"
+    },
+    {
+        name: "Gustavo Fernández",
+        state: "Zulia",
+        municipality: "San Francisco (Zulia)",
+        politicalAffiliation: "Independiente (Ex-Primero Justicia)",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde con evolución desde el periodismo y ex militancia en Primero Justicia. Demuestra pragmatismo operativo sobre ideología. Capacidad probada en programas sociales innovadores (Plan Paraguas, En Buenas Manos). Potencial para proyectos piloto en servicios básicos con enfoque en resultados tangibles.",
+        cargo: "Alcalde de San Francisco",
+         actorType: "Autoridades Civiles"
+    },
+     {
+        name: "[Alcalde Interino/Encargado]",
+        state: "Zulia",
+        municipality: "Cabimas",
+        politicalAffiliation: "[A definir]",
+        influenceLevel: "Bajo",
+        opennessLevel: "Alta",
+         notes: "Situación de crisis de gobernabilidad tras detención de alcalde anterior por presunta extorsión. Vacío de autoridad en municipio petrolero clave. Contexto actual presenta oportunidad para programas humanitarios neutros y apolíticos. Vulnerabilidad incrementada de la población requiere atención urgente.",
+        cargo: "Alcalde Interino/Encargado",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Nidia \"La Chicha\" Atencio",
+        state: "Zulia",
+        municipality: "La Cañada de Urdaneta",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcaldesa con larga trayectoria política y controversias legales pasadas. Mantiene red local consolidada pero conflictiva. Control efectivo sobre territorio municipal. Oportunidad para trabajo en áreas rurales y programas de agua, requiere aproximación estrictamente neutral.",
+        cargo: "Alcaldesa de La Cañada",
+        actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Indira Fernández",
+        state: "Zulia",
+        municipality: "Indígena Bolivariano Guajira",
+        politicalAffiliation: "PSUV (Indígena)",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcaldesa y líder indígena (wayuu y añú) desde 2017. Profunda comprensión de dinámicas indígenas y fronterizas. Enfrenta amenazas de grupos armados. Punto de entrada crucial para comunidades indígenas y facilitadora de diálogo intercultural. Conocimiento directo de necesidades locales.",
+        cargo: "Alcaldesa de Guajira",
+         actorType: "Líderes comunitarios"
+    },
+    {
+         name: "Danilo Añez",
+        state: "Zulia",
+        municipality: "Jesús Enrique Lossada",
+        politicalAffiliation: "Independiente (Ex-PSUV)",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde con transición desde PSUV a posición independiente. Conocimiento de ambos lados del espectro político. Enfoque en desarrollo agrícola y seguridad alimentaria. Apertura a programas técnicos más que políticos. Vulnerable a acusaciones por cambio de posición política.",
+        cargo: "Alcalde de Jesús Enrique Lossada",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Vidal Prieto",
+        state: "Zulia",
+        municipality: "Machiques de Perijá",
+        politicalAffiliation: "Independiente (Ex-PSUV)",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde que se distanció del PSUV tras denunciar amenazas. Experiencia en manejo de crisis en contexto fronterizo. Enfoque en servicios básicos, especialmente agua. Potencial para programas de agua, saneamiento y desarrollo en zonas rurales fronterizas.",
+        cargo: "Alcalde de Machiques",
+        actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Ely Ramón Atencio",
+        state: "Zulia",
+        municipality: "Rosario de Perijá",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde y ex diputado con capacidad de gestión multinivel. Enfoque en educación y desarrollo con proyectos innovadores como núcleo LUZ. Mantiene redes institucionales extensas. Oportunidades en programas educativos, desarrollo juvenil y coordinación institucional.",
+        cargo: "Alcalde de Rosario de Perijá",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Jhon Ziccardi",
+        state: "Zulia",
+        municipality: "Valmore Rodríguez",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde con pasado en sector empresarial y Gente del Petróleo. Mantiene posición crítica al gobierno central y conexiones con sector privado. Enfocado en servicios públicos y salud comunitaria. Potencial para alianzas público-privadas y programas de salud en comunidades petroleras.",
+        cargo: "Alcalde de Valmore Rodríguez",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Ervins Rosales",
+        state: "Zulia",
+        municipality: "Francisco Javier Pulgar",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde ingeniero civil y fundador de 'Construyamos un Futuro'. Combina capacidad técnica con experiencia en trabajo comunitario. Desarrolla programas sociales innovadores como Vaso de Leche Escolar. Potencial para proyectos de infraestructura comunitaria y programas nutricionales.",
+        cargo: "Alcalde de Francisco Javier Pulgar",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Yonys González Andrade",
+        state: "Zulia",
+        municipality: "Sucre (Zulia)",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Alta",
+        notes: "Alcalde ingeniero agrónomo con experiencia en FUNDESUL. Capacidad demostrada en gestión de emergencias y rehabilitación hospitalaria. Conocimiento técnico del sector rural. Oportunidades en programas de salud rural y respuesta a emergencias.",
+        cargo: "Alcalde de Sucre",
+        actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Ramón Bracho Fonseca",
+        state: "Zulia",
+        municipality: "Baralt",
+        politicalAffiliation: "Independiente",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde con experiencia previa (2000-2004) y retorno en 2021. Conocimiento profundo del territorio y experiencia en manejo de emergencias en estructuras palafíticas. Enfoque en servicios básicos y acueductos rurales. Potencial para programas de agua, saneamiento y reducción de riesgos.",
+        cargo: "Alcalde de Baralt",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Luis Gerardo Caldera Morales",
+        state: "Zulia",
+        municipality: "Mara",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde con relaciones cercanas al gobierno central y enfoque en infraestructura. Su alineación con PSUV facilita acceso a recursos gubernamentales. Potencial para proyectos de desarrollo de infraestructura bajo coordinación con políticas nacionales.",
+        cargo: "Alcalde de Mara",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "José Mosquera",
+        state: "Zulia",
+        municipality: "Lagunillas",
+        politicalAffiliation: "Oposición (UNT)",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde opositor con enfoque pragmático en gestión municipal. Busca mejoras concretas en administración local superando barreras políticas. Potencial para programas técnicos y de servicios básicos manteniendo perfil apolítico.",
+        cargo: "Alcalde de Lagunillas",
+         actorType: "Autoridades Civiles"
+    },
+    {
+        name: "Argelio Riera",
+        state: "Zulia",
+        municipality: "Simón Bolívar",
+        politicalAffiliation: "Independiente (Ex-PSUV)",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde que transitó desde PSUV a posición independiente. Mantiene enfoque en programas de ayuda social. Su experiencia en ambos sectores políticos puede facilitar implementación de programas, aunque requiere manejo cuidadoso por su cambio de afiliación.",
+        cargo: "Alcalde de Simón Bolívar",
+          actorType: "Autoridades Civiles"
+    },
+     {
+        name: "Alberto Sovalbarro Durán",
+        state: "Zulia",
+        municipality: "Almirante Padilla",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde PSUV con enfoque en desarrollo turístico y apoyo del gobierno central. Su alineación política facilita acceso a recursos gubernamentales. Potencial para proyectos de desarrollo local coordinados con políticas nacionales.",
+        cargo: "Alcalde de Almirante Padilla",
+         actorType: "Autoridades Civiles"
+    },
+    {
+         name: "Keyrineth Selenia Fernández Epieyu",
+        state: "Zulia",
+        municipality: "Jesús María Semprún",
+        politicalAffiliation: "PSUV",
+        influenceLevel: "Medio",
+        opennessLevel: "Baja",
+        notes: "Alcaldesa suspendida enfrentando problemas legales. Situación genera inestabilidad administrativa y limitaciones operativas. Contexto requiere aproximación cautelosa y enfoque en necesidades básicas de la población a través de canales institucionales alternativos.",
+        cargo: "Alcaldesa de Jesús María Semprún",
+          actorType: "Autoridades Civiles"
+    },
+      {
+        name: "Fernando Loaiza Chacón",
+        state: "Zulia",
+        municipality: "Catatumbo",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+        opennessLevel: "Moderada",
+        notes: "Alcalde de Catatumbo, con trayectoria en la política local, habiendo ocupado previamente el cargo en varios periodos. Su gestión actual se enfoca en la infraestructura local, gestión de emergencias y la promoción de la agricultura. Su alineación opositora requiere un trato con transparencia.",
+          cargo: "Alcalde de Catatumbo",
+         actorType: "Autoridades Civiles"
+    },
+        {
+            name: "Nervins de Jesús Sarcos Urdaneta",
+        state: "Zulia",
+        municipality: "Colón",
+        politicalAffiliation: "MUD",
+        influenceLevel: "Medio",
+         opennessLevel: "Moderada",
+        notes: "Alcalde del municipio Colón, con experiencia en la agroindustria y gestión municipal, miembro de la MUD. Su gestión se enfoca en servicios básicos, desarrollo local, y respuesta a emergencias. Su posición opositora requiere prudencia en la colaboración.",
+        cargo: "Alcalde de Colón",
+        actorType: "Autoridades Civiles"
+    },
+ {
+      name: "Alenis Guerrero",
+      state: "Zulia",
+      municipality: "Santa Rita",
+      politicalAffiliation: "MUD",
+      influenceLevel: "Medio",
+      opennessLevel: "Alta",
+      notes: "Alcalde reelecto de Santa Rita (2022-2025), con experiencia previa en el cargo. Enfocado en servicios públicos, cultura y deporte. Mantiene relación cooperativa con autoridades regionales.",
+      cargo: "Alcalde de Santa Rita",
+      actorType: "Autoridades Civiles"
+    },
+ {
+      name: "Julio Andrade",
+      state: "Falcón",
+      municipality: "Unión",
+      politicalAffiliation: "COPEI",
+      influenceLevel: "Medio",
+      opennessLevel: "Moderada",
+      notes: "Alcalde electo en 2021 con 54.36% de los votos. Representa a COPEI en oposición. Información limitada sobre proyectos específicos y logros en gestión.",
+      cargo: "Alcalde de Unión",
+      actorType: "Autoridades Civiles"
+    },
+{
+      name: "Jorge Nava",
+      state: "Zulia",
+      municipality: "Miranda (Zulia)",
+      politicalAffiliation: "PSUV",
+      influenceLevel: "Medio",
+      opennessLevel: "Alta",
+      notes: "Alcalde del municipio Miranda con fuerte conexión al PSUV. Su gestión se enfoca en programas sociales, infraestructura y servicios básicos. Mantiene estrecha relación con el gobierno central.",
+      cargo: "Alcalde de Miranda",
+      actorType: "Autoridades Civiles"
+    },
+               {
+            name: "Policía Regional de Falcón",
+            state: "Falcón",
+            municipality: "Miranda (Falcón)",
+            politicalAffiliation: "PSUV",
+            influenceLevel: "Medio",
+            opennessLevel: "Moderada",
+             notes: "Institución regional encargada de la seguridad en el estado Falcón. Actúa bajo las directrices del gobierno regional y colabora con otros cuerpos de seguridad para el control del territorio y manejo de la seguridad pública",
+            cargo: "Jefe Regional",
+               actorType: "Policia"
+        }
+];
+const coordinates = {
+        VE1101: [11.173012874215065, -68.40637207031251],
+        VE1102: [11.119622697028026, -69.67992782592775],
+        VE1103: [11.173939115629798, -70.61900138854982],
+        VE1104: [10.970853524549222, -68.54610443115236],
+        VE1105: [11.7167, -70.1833],
+        VE1106: [11.462192007850312, -69.56259727478029],
+        VE1107: [11.026124257032576, -70.67882537841798],
+        VE1108: [11.02224890349505, -70.11852264404298],
+        VE1109: [11.94763940171619, -69.9217987060547],
+        VE1110: [11.0167, -69.6667],
+        VE1111: [11.073045675058792, -68.85603904724123],
+        VE1112: [11.825181576534954, -70.25053024291994],
+        VE1113: [10.680513729812752, -71.03485107421876],
+        VE1114: [11.409360417024779, -69.64096069335939],
+        VE1115: [10.935629888135544, -68.28243255615236],
+        VE1116: [10.687261154684196, -68.48464965820314],
+        VE1117: [11.14471898539305, -69.61177825927736],
+        VE1118: [11.366785133008674, -69.13816452026369],
+        VE1119: [11.159792560879708, -68.72566223144533],
+        VE1120: [10.7886231096603, -68.32740783691408],
+        VE1121: [11.059820828563412, -69.70962524414064],
+        VE1122: [11.49979064530538, -69.25875663757326],
+        VE1123: [10.8193116861498, -69.2765235900879],
+        VE1124: [11.490959201039502, -69.33248519897462],
+        VE1125: [11.490959201039502, -69.33248519897462],
+        VE2301: [10.956023030580504, -71.66107177734376],
+        VE2302: [9.783497934426292, -71.06266021728517],
+        VE2303: [10.4, -71.45],
+        VE2304: [9.1667, -72.5833],
+        VE2305: [9.059888796803511, -72.23356246948244],
+        VE2306: [9.01530233420598, -72.11151123046876],
+        VE2307: [10.614718497179924, -71.85607910156251],
+        VE2308: [9.008859726990762, -72.73447036743165],
+        VE2309: [10.418936471116536, -71.70021057128908],
+        VE2310: [10.1333, -71.26],
+        VE2311: [10.0667, -72.55],
+        VE2312: [10.950629939379114, -71.74415588378908],
+        VE2313: [10.6333, -71.6167],
+        VE2314: [10.680176354634435, -71.51756286621095],
+        VE2315: [11.089133695565964, -71.85307502746583],
+        VE2316: [10.32167469581053, -72.32608795166017],
+        VE2317: [10.55, -71.65],
+        VE2318: [10.5333, -71.5],
+        VE2319: [10.1833, -71.3],
+        VE2320: [9.229537785857646, -71.08978271484376],
+        VE2321: [9.9167, -71.1167],
+      };
+            const municipalityToCode = {
+                "Miranda (Falcón)": "VE1114",
+                "Acosta": "VE1101",
+                "Bolívar": "VE1102",
+                "Buchivacoa": "VE1103",
+                "Cacique Manaure": "VE1104",
+                "Carirubana": "VE1105",
+                "Colina": "VE1106",
+                 "Dabajuro": "VE1107",
+                "Democracia": "VE1108",
+                "Falcón": "VE1109",
+                "Federación": "VE1110",
+                "Jacura": "VE1111",
+                "Los Taques": "VE1112",
+                "Mauroa": "VE1113",
+                "Monseñor Iturriza": "VE1115",
+                "Palmasola": "VE1116",
+                "Petit": "VE1117",
+                "Píritu": "VE1118",
+                 "San Francisco (Falcón)": "VE1119",
+                 "Silva": "VE1120",
+                "Sucre (Falcón)": "VE1121",
+                 "Tocópero": "VE1122",
+                 "Unión": "VE1123",
+               "Urumaco": "VE1124",
+                "Zamora": "VE1125",
+                "Almirante Padilla":"VE2301",
+                "Baralt": "VE2302",
+                "Cabimas": "VE2303",
+                 "Catatumbo": "VE2304",
+                 "Colón": "VE2305",
+                "Francisco Javier Pulgar": "VE2306",
+                "Jesús Enrique Lossada": "VE2307",
+                 "Jesús María Semprún":"VE2308",
+                "La Cañada de Urdaneta": "VE2309",
+                "Lagunillas": "VE2310",
+                 "Machiques de Perijá": "VE2311",
+                 "Mara": "VE2312",
+                  "Maracaibo": "VE2313",
+                "Miranda (Zulia)": "VE2314",
+               "Indígena Bolivariano Guajira":"VE2315",
+                "Rosario de Perijá": "VE2316",
+              "San Francisco (Zulia)": "VE2317",
+              "Santa Rita":"VE2318",
+                "Simón Bolívar":"VE2319",
+                 "Sucre (Zulia)": "VE2320",
+                "Valmore Rodríguez": "VE2321"
+             };
+
+            const UN_COLORS = {
+                blue: "#00AEDB",
+                green: "#72BF44",
+                yellow: "#FFC800",
+                orange: "#FF5B20",
+                red: "#ED1847",
+                purple: "#A05FB4",
+                gray: "#AEA9A9"
+            };
+
+            let filteredStakeholders = [...actorsData];
+            const filters = {
+                state: 'all',
+                municipality: 'all',
+                influenceLevel: 'all',
+                 actorType: 'all'
+            };
+
+           // Inicialización del mapa
+           const map = L.map("map", {
+                center: [10.4, -71.3],
+                zoom: 7,
+                minZoom: 6,
+                maxZoom: 12
+            });
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "OCHA"
+            }).addTo(map);
+
+            // Funciones principales
+            function updateFilters() {
+                filteredStakeholders = actorsData.filter(s => {
+                    return (filters.state === 'all' || s.state === filters.state) &&
+                           (filters.municipality === 'all' || s.municipality === filters.municipality) &&
+                           (filters.influenceLevel === 'all' || s.influenceLevel === filters.influenceLevel) &&
+                            (filters.actorType === 'all' || s.actorType === filters.actorType)
+                });
+
+                updateKPIs();
+                updateMap();
+                updateCharts();
+            }
+
+            function updateKPIs() {
+                document.getElementById('total-actors').textContent = filteredStakeholders.length;
+                document.getElementById('high-influence').textContent =
+                    filteredStakeholders.filter(s => s.influenceLevel === 'Alto').length;
+                 document.getElementById('political-affiliations').textContent =
+                    new Set(filteredStakeholders.map(s => s.politicalAffiliation)).size;
+                document.getElementById('total-institutions').textContent =
+                    new Set(filteredStakeholders.map(s => s.politicalAffiliation)).size;
+            }
+
+            function updateMap() {
+                map.eachLayer((layer) => {
+                    if (!(layer instanceof L.TileLayer)) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+              const municipalityGroups = {};
+        filteredStakeholders.forEach(stakeholder => {
+        if (!municipalityGroups[stakeholder.municipality]) {
+          municipalityGroups[stakeholder.municipality] = [];
+        }
+       municipalityGroups[stakeholder.municipality].push(stakeholder);
+                });
+                
+              Object.entries(municipalityGroups).forEach(([municipality, stakeholders]) => {
+                  const municipalityCode = municipalityToCode[municipality];
+            if (municipalityCode && coordinates[municipalityCode]) {
+                 const coords = coordinates[municipalityCode];
+                        const highInfluence = stakeholders.filter(s => s.influenceLevel === 'Alto').length;
+                        const radius = Math.sqrt(stakeholders.length) * 5000;
+                        
+                        const circle = L.circle(coords, {
+                            color: highInfluence > 0 ? UN_COLORS.red : UN_COLORS.blue,
+                            fillColor: highInfluence > 0 ? UN_COLORS.red : UN_COLORS.blue,
+                            fillOpacity: 0.5,
+                            radius: radius
+                        });
+
+                        const popupContent = createPopupContent(municipality, stakeholders);
+                        circle.bindPopup(popupContent, {
+                            maxWidth: 300,
+                            maxHeight: 400,
+                            className: 'stakeholder-popup'
+                        });
+
+                        circle.addTo(map);
+                    }
+                });
+
+
+                // Ajustar la vista del mapa
+                const bounds = Object.values(municipalityGroups)
+                    .map(group => {
+                        const code = municipalityToCode[group[0].municipality];
+                        return coordinates[code];
+                    })
+                    .filter(coord => coord !== undefined);
+
+                 if (bounds.length > 0) {
+                    map.fitBounds(bounds);
+                }
+            }
+
+
+            function createPopupContent(municipality, stakeholders) {
+                const highInfluence = stakeholders.filter(s => s.influenceLevel === 'Alto').length;
+        
+         return `
+                    <div class="stakeholder-popup">
+                        <h3>${municipality}</h3>
+                        <div class="popup-stats">
+                            <div><strong>Total Actores:</strong> ${stakeholders.length}</div>
+                            
+                        </div>
+                        <div class="popup-details">
+                        ${stakeholders.map(s => `
+                            <div style="margin-bottom: 10px; padding: 5px; border-bottom: 1px solid #eee;">
+                            <strong>${s.name}</strong> <br>
+                            <span style="color: #666;">Cargo: ${s.cargo}</span><br>
+                                    <span style="color: #666;">${s.politicalAffiliation}</span>
+                                    <br>
+                                      <span style="color: ${s.influenceLevel === 'Alto' ? UN_COLORS.red : UN_COLORS.blue}">
+                                        <strong>Nivel de influencia:</strong> ${s.influenceLevel}
+                                    </span>
+                                    <br>
+                                     <strong>Breve análisis:</strong>
+                                    <br>
+                                    <small>${s.notes}</small>
+                                </div>
+                            `).join('')}
+                         </div>
+                   </div>
+                `;
+            }
+           function updateCharts() {
+               // Limpiar las gráficas existentes
+                ['influence-chart', 'affiliation-chart', 'municipality-chart', 'actor-type-chart'].forEach(id => {
+
+                        const existingChart = Chart.getChart(id);
+                         if (existingChart) {
+                            existingChart.destroy();
+                        }
+                });
+
+                const chartDefaults = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     plugins: {
+                         legend: {
+                            position: 'bottom',
+                             labels: {
+                                padding: 20,
+                                font: {
+                                  size: 12
+                                }
+                             }
+                        }
+                    }
+                };
+
+                // Gráfica de Influencia
+                const influenceCtx = document.getElementById('influence-chart').getContext('2d');
+                const influenceCounts = {
+                    'Alto': filteredStakeholders.filter(s => s.influenceLevel === 'Alto').length,
+                    'Medio': filteredStakeholders.filter(s => s.influenceLevel === 'Medio').length,
+                    'Bajo': filteredStakeholders.filter(s => s.influenceLevel === 'Bajo').length
+                };
+
+                new Chart(influenceCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(influenceCounts),
+                        datasets: [{
+                            label: 'Número de actores',
+                            data: Object.values(influenceCounts),
+                            backgroundColor: [UN_COLORS.red, UN_COLORS.yellow, UN_COLORS.green],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        ...chartDefaults,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+
+               
+                // Gráfica de Afiliación Política
+                const affiliationCtx = document.getElementById('affiliation-chart').getContext('2d');
+                const affiliationCounts = {};
+                filteredStakeholders.forEach(s => {
+                    if (!affiliationCounts[s.politicalAffiliation]) {
+                        affiliationCounts[s.politicalAffiliation] = 0;
+                    }
+                    affiliationCounts[s.politicalAffiliation]++;
+                });
+
+                new Chart(affiliationCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(affiliationCounts),
+                        datasets: [{
+                            data: Object.values(affiliationCounts),
+                             backgroundColor: 				Object.keys(affiliationCounts).map((_, i) =>
+                                Object.values(UN_COLORS)[i % Object.keys(UN_COLORS).length]
+                            ),
+                              borderWidth: 0
+                        }]
+                    },
+                     options: chartDefaults
+                });
+
+                 // Gráfica de Tipo de Actor
+                 const actorTypeCtx = document.getElementById('actor-type-chart').getContext('2d');
+                const actorTypeCounts = {};
+                    filteredStakeholders.forEach(s => {
+                      if (actorTypeCounts[s.actorType] === undefined) {
+                          actorTypeCounts[s.actorType] = 1;
+                       } else {
+                           actorTypeCounts[s.actorType]++;
+                       }
+                    });
+
+                new Chart(actorTypeCtx, {
+                    type: 'bar',
+                     data: {
+                        labels: Object.keys(actorTypeCounts),
+                        datasets: [{
+                            label: 'Número de actores',
+                            data: Object.values(actorTypeCounts),
+                            backgroundColor:  Object.keys(actorTypeCounts).map((_, i) =>
+                                Object.values(UN_COLORS)[i % Object.keys(UN_COLORS).length]
+                            ),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        ...chartDefaults,
+                       scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                    }
+                });
+
+
+                // Gráfica de Municipios
+                const municipalityCtx = document.getElementById('municipality-chart').getContext('2d');
+                const municipalityCounts = {};
+                   filteredStakeholders.forEach(s => {
+                      if (municipalityCounts[s.municipality] === undefined) {
+                          municipalityCounts[s.municipality] = 1;
+                       } else {
+                           municipalityCounts[s.municipality]++;
+                       }
+                    });
+
+                const topMunicipalities = Object.entries(municipalityCounts)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 10);
+
+                new Chart(municipalityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topMunicipalities.map(([name]) => name),
+                        datasets: [{
+                            label: 'Número de actores',
+                            data: topMunicipalities.map(([, count]) => count),
+                            backgroundColor: UN_COLORS.blue,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        ...chartDefaults,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                 ticks: {
+                                  stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Función para inicializar el selector de municipios
+           function populateMunicipalitySelect() {
+                const municipalitySelect = document.getElementById('municipality-select');
+                municipalitySelect.innerHTML = '<option value="all">Todos los municipios</option>';
+                
+                const currentState = filters.state;
+                const relevantMunicipalities = [...new Set(actorsData
+                    .filter(s => currentState === 'all' || s.state === currentState)
+                    .map(s => s.municipality))]
+                    .sort();
+
+                relevantMunicipalities.forEach(municipality => {
+                    const option = document.createElement('option');
+                    option.value = municipality;
+                    option.textContent = municipality;
+                    municipalitySelect.appendChild(option);
+                });
+            }
+
+
+           // Event listeners para los filtros
+            document.getElementById('state-select').addEventListener('change', (e) => {
+                filters.state = e.target.value;
+                filters.municipality = 'all'; // Reset municipality filter when state changes
+                updateFilters();
+            });
+            document.getElementById('municipality-select').addEventListener('change', (e) => {
+                filters.municipality = e.target.value;
+                updateFilters();
+            });
+
+             document.getElementById('actor-type-select').addEventListener('change', (e) => {
+                filters.actorType = e.target.value;
+                updateFilters();
+            });
+            document.getElementById('influence-select').addEventListener('change', (e) => {
+                filters.influenceLevel = e.target.value;
+                updateFilters();
+            });
+
+            // Initial setup
+            populateMunicipalitySelect();
+            updateFilters();
+
+        });
+    </script>
+</body>
+</html>
